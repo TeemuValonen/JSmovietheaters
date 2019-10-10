@@ -1,0 +1,289 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+<link rel="JavaScript" type="JavaScript" href="css/bootstrap.css">
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+			  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+			  crossorigin="anonymous"></script>
+
+
+
+  </head>
+
+  <body style="background-color:#FAFAFA;" onload="haeTeatterit()">
+		<script>
+
+
+
+
+		/* function haeXML(url, haluttuFunktio) {
+		  var xmlhttp = new XMLHttpRequest();
+
+		  xmlhttp.onreadystatechange = function() {
+		  if (this.readyState == 4 && this.status == 200){
+
+		      haluttuFunktio(this);
+
+		    }
+		  };
+		  xmlhttp.open("GET", url, true);
+		  xmlhttp.send(null);
+		}
+
+		function haeTeatterit(xmlhttp) {
+		  var doc = xmlhttp.responseXML;
+		  var teatterit = doc.getElementsByTagName("Name");
+		  var iidee = doc.getElementsByTagName("ID");
+		  var boksi = document.getElementById('scrollBox');
+		  document.getElementById("scrollBox").innerHTML = "";<!-- Tyhjentää tuloskentän -->
+
+		  for (var i = 1; i < teatterit.length; i++) {
+		      var teatteriTxtNode = document.createTextNode(teatterit[i].innerHTML);
+		      teatteriBtn = document.createElement("button");
+		      teatteriBtn.classList.add('teatteri', 'btn', 'btn-light', 'btn-block', 'rounded');
+		      teatteriBtn.value = iidee[i].innerHTML;
+		      teatteriBtn.onclick = function(){
+		          haeXML(("https://www.finnkino.fi/xml/Schedule/?area=" + this.value),leffatEsiin)};
+		      teatteriBtn.appendChild(teatteriTxtNode);
+		      boksi.appendChild(teatteriBtn);
+		     }
+		}*/
+
+/* haeTeatteri() -funktio tekee XML-haun käyttäen jQueryn .get()-metodia.
+ 	 Tätä funktiota kutsutaan <body>-elementin onload- tapahtumakutsulla.   */
+		function haeTeatterit() {
+			/*   ensin tyhjennetään kenttä, jonne teatterit tulevat  */
+		  $('scrollbox').empty();
+
+			/* jQueryn .get()-metodi vastaa JavaScriptin XHR-tapahtumaa.
+			   Funktion parametreinä ovat haluttu osoite ja toinen parametri itsessään
+				 on funktio, joka suoritetaan onnistuneen XMLHttpRequest:n jälkeen.			*/
+
+		  $.get("https://www.finnkino.fi/xml/TheatreAreas/", function (doc){
+
+			/* Tässä tapauksessa tallennetaan XHR-olio muuttujaan doc, josta haetaan
+			  	halutut tiedot .find() funktioilla. Tämä vastaa getElementsByTagNamen
+					käyttöä Ajax:ssa ilman jQuerya.	*/
+
+		    var teatterit = $(doc).find('Name');
+		    var iidee = $(doc).find('ID');
+
+			/*	For looppi luo <button> -elementin jokaiselle elokuvateatterille,
+					joka löytyy XML-tiedostosta. Niille asetetaan luokat tyylitystä
+					ja tunnistusta varten ja liitetään #scrollBox-diviin yksi kerrallaan.*/
+
+		    for (var i = 1; i < teatterit.length; i++) {
+
+		      var teatteriBtn = $('<button></button>')
+		          .text(teatterit[i].innerHTML)
+		          .addClass("teatteri btn btn-light btn-block rounded teatteriBtn")
+		          .attr("value",iidee[i].innerHTML);
+		      $("#scrollBox").append(teatteriBtn);
+		    }
+
+				/* For-loopin jälkeen käytetään .on()-metodia lisäämään tapahtumakutsu
+						metodille, joka lataa toisesta XML-tiedostosta FinnKinon tapahtumat.
+						Kutsu käyttää parametrinä buttonille asetettua value-attribuutia, joka vastaa
+						teatterin ID:tä. Näin saadaan paikallistettua elokuvatarjonta.*/
+
+				$("#scrollBox").on("click",".teatteriBtn", function(){
+					$("#leffat").empty();
+					leffatEsiin(this.value);
+				});
+		  });
+		}
+
+
+/* Tämä funktio ottaa parametrinä painetun napin value-attribuuin. Se liitetään
+  	URL-osoitteeseen FinnKinon "events"-XML-tiedostossa, jotta saadaan paikalliset tiedot.*/
+
+		function leffatEsiin(iidee){
+			$("#haeLeffaa").show();
+		  $('#pakoPainike').show();
+		  $('#leffat').empty();
+		  var url = ("https://www.finnkino.fi/xml/Events/?area="+iidee);
+		  $.get(url,function (doc){
+				var eventId = $(doc).find("ID");											// ID = leffakohtainen tunnus
+		    var tapahtumat = $(doc).find("OriginalTitle");				// OriginalTitle = leffan nimi
+		    var kuvat = $(doc).find("EventSmallImagePortrait");		// EventSmallImagePortrait = leffan pienehkö kuvake
+				var synopsis = $(doc).find("ShortSynopsis");					// ShortSynopsis = leffan kuvaus
+				var vuosi = $(doc).find("ProductionYear");						// ProductionYear = leffan produktiovuosi
+				var rating = $(doc).find("Rating");										// Rating = leffan ikäraja
+				var kesto = $(doc).find("LengthInMinutes");						// LengthInMinutes = leffan pituus
+				var urli = $(doc).find("EventURL");										// EventURL = leffan lisätietosivun URL
+
+				/* Tämä on käytännössä täysin samoin kuin haeTeatterit()-funktiossa.
+					Jokaista tapahtumaa kohden luodaan oma <div>, jonne sijoitetaan tiedot.*/
+
+		    for (var j = 0; j < tapahtumat.length; j++) {
+
+		      var leffaBoksi = $('<div></div>')  // leffaBoksi on oma boksi jokaiselle leffalle, johon sijoitetaan alla luetellut luotavat elementit
+		          .addClass('leffaKortti media bg-purply rounded-more p-3 full my-1 varjo noborder');
+		      $('#leffat').append(leffaBoksi);
+
+		      var thumbNail = $('<img/>').attr("src",kuvat[j].innerHTML)  // leffan pieni kuvake, sijoitetaan leffaBoksin sisään
+							.addClass("img-fluid");
+		      $(leffaBoksi).prepend(thumbNail);
+
+		      var desc = $("<div></div>").addClass("media-body desc");  // leffan kuvaus-elementti, sijoitetaan leffaBoksin sisään,
+		      $(leffaBoksi).append(desc);																// kuvakkeen oikealle puolelle, johon tulee alla luetellut elementit
+
+		      var otsikko = $("<h4></h4>").text((tapahtumat[j].innerHTML + " (" + vuosi[j].innerHTML+")"));  // leffan nimi, sijoitetaan leffaBoksin sisään
+		      $(desc).prepend(otsikko);
+
+					var ikaraja = $("<p></p>").text("Ikäraja: " + rating[j].innerHTML) // leffan ikäraja, sijoitetaan kuvaus-elementin sisään
+								.addClass("haivytys flex-wrap d-flex float-l");
+					if (ikaraja[0].textContent == "Ikäraja: Luok_vap") {  // tarkistetaan mikäli "ikaraja"-muuttujan textContentista löytyy "Luok_vap"
+						ikaraja[0].textContent = "Ikäraja: Kaikille"; 			// mikäli kyllä, sijoitetaan sille uusi arvo = "Kaikille". Tämä tehty ymmärrettävyyden vuoksi.
+					}
+					$(desc).append(ikaraja);
+
+					var pituus = $("<p></p>").text("Kesto: " + kesto[j].innerHTML +" min")		// leffan pituus minuuteissa, sijoitetaan kuvaus-elementin sisään
+								.addClass("haivytys flex-wrap d-flex");
+					$(desc).append(pituus);
+
+					var kuvaus = $("<p><br></p>").text(synopsis[j].innerHTML);  // leffakohtainen kuvaus, joka sijoitetaan kuvaus-elementin sisään
+		      $(desc).append(kuvaus);
+
+					var osoite = urli[j].innerHTML;															// leffakohtainen lisätietosivun URL
+					var viePois = $("<a> Katso tiedot > </a>").attr("href",osoite)			// luodaan a-linkki, jolle annetaan osoitteeksi osoite-muuttuja
+								.addClass("namiska rounded");
+					$(desc).append(viePois);
+
+		    }
+
+		  });
+
+		}
+
+
+/* Elokuvia varten on hakupalkki, johon liitetään ensin erillisellä funktiolla
+ 		keyup()-tapahtumakuuntelija, joka reagoi syötteeseen.*/
+
+	$(function(){
+		$("#haeLeffaa").keyup(haeLeffaa);
+	});
+
+/* Tämä funktio ottaa hakukentän value-attribuutin joka kerta, kun
+	näppäimistöltä otetaan syöte vastaan kentässä. Tätä attribuuttia
+	verrataan .each()-metodilla ja sen sisäisellä funktiolla kaikkiin
+	.leffaKortti-<div>-elementtien sisäisiin <h4>-elementteihin.
+	Funktio piilottaa ne elementit, jotka eivät täsää hakua.					*/
+
+	function haeLeffaa () {
+		var haku = $(this).val().toLowerCase();
+		$(".leffaKortti h4").each(function(){
+			var leffa = $(this).text().toLowerCase();
+
+			if (leffa.indexOf(haku) !== -1) {
+				$(this).parent().parent().show();
+			} else {
+				$(this).parent().parent().hide();
+			}
+
+		});
+	}
+
+		/*function leffatEsiin(xmlhttp) {
+		  var doc = xmlhttp.responseXML;
+		  var leffat = document.getElementsByClassName('leffaKortti');
+		  var teatterit = document.getElementsByClassName('teatteri');
+		  document.getElementById('pakoPainike').style.display = "inherit";
+		  var loota = document.getElementById("leffat");
+		  loota.style.display = "inherit";
+
+		  document.getElementById("leffat").innerHTML = "";
+
+		  var leffojenNimet = doc.getElementsByTagName("OriginalTitle");
+		  var kuvat = doc.getElementsByTagName("EventSmallImagePortrait");
+
+		    for (var i = 0; i < leffojenNimet.length; i++) {
+		        var leffaBoksi = document.createElement("div");
+		        leffaBoksi.classList.add('leffaKortti', 'media', 'border', 'bg-purply', 'rounded-more', 'p-3', 'full');
+		        loota.appendChild(leffaBoksi);
+
+		        var thumbNail = document.createElement("img");
+		        thumbNail.src=kuvat[i].innerHTML;
+		        thumbNail.classList.add('img-fluid');
+		        leffaBoksi.appendChild(thumbNail);
+
+		        var boksiContent = document.createElement('div');
+		        boksiContent.classList.add('media-body');
+		        leffaBoksi.appendChild(boksiContent);
+
+		        var uusiTitle = document.createElement("h4");
+		        var titleSisalto = document.createTextNode(leffojenNimet[i].innerHTML);
+		        uusiTitle.appendChild(titleSisalto);
+		        boksiContent.appendChild(uusiTitle);
+
+		       }
+
+		}
+		*/
+
+		/* Tämä on paluupainikkeen funktio. Se antaa käyttäjän tyhjentää tapahtumalistan,
+		sekä samalla piilottaa itsensä. */
+
+		$(function(){
+		  $("#pakoPainike").click(function() {
+		    $("#leffat").empty();
+				$("#pakoPainike").hide();
+				$("#haeLeffaa").hide();
+		  });
+		});
+
+
+		</script>
+
+
+    <div class="jumbotron jumbotron-fluid" style="background-color: #4A3A5E;">
+    <h2 class="display-2 text-center" style="color: white;">Finnkino-proja</h1>
+    <p class="lead text-center" style="color: #EBEBEB;"><br>Javascript yms.<br>Höpö.</p>
+  </div>
+
+<div class="container"> <!-- Container starts-->
+
+<!-- lisätään tämä -->
+<div class="row text-center"> <!-- tämä on haeTeatterit() funktiolle -->
+  <!-- <button type="button" onclick="haeTeatterit()" class="btn btn-info btn-block rounded">HAE</button> -->
+</div>
+
+  <div class="row text-left">
+    <div class="col-lg-3 mb-2">
+      <div class="teatteri varjo d-flex justify-content-center flex-wrap bg-purply pt-3 pb-2 rounded-more">
+        <h5 class="pb-2"> Teatteri: </h5>
+      <div id="scrollBox" class="teatteri pre-scrollable d-flex justify-content-center rounded-more bg-purply flex-wrap mb-1 p-2" style="max-height: 300px;">
+      </div>
+        <button id="pakoPainike" type="button" class="btn btn-light mt-1" style="display:none;">< sulje</button>
+    </div>
+  </div>
+		<div class="col-lg-9 mb-5">
+		<div class="ylaPalkki col-lg-9 mb-3 full bg-purply varjo rounded d-flex justify-content-center flex-wrap" style="height:50px;">
+			<input type="text" id="haeLeffaa" placeholder="Hae leffan nimellä" class="inputBox rounded media-box" style="display:none;">
+			<h5 style="float:right; margin:auto;"> Javascript | Proja 2 | Teemu Valonen & Nader Gam </h5>
+		</div>
+     <div id="leffat" class="pre-scrollable d-flex justify-content-center flex-wrap full"
+                      style="display:none;max-height:410px;">
+   	</div>
+	</div>
+ </div>
+
+
+<!-- container ends-->
+
+
+<!-- Footer -->
+
+  </body>
+  <footer class="py-5 bg-dark full">
+   <div class="container bg-dark full">
+     <p class="m-0 text-center text-white">Copyright &copy; Your Website 2018</p>
+  </div>
+
+
+</html>
